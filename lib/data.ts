@@ -94,7 +94,7 @@ export const recipes: Recipe[] = [
     id: "recipe-1",
     title: "Vegetarian Pasta Primavera",
     description: "A light and fresh pasta dish loaded with spring vegetables.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/pasta-primavera.jpg",
     prepTime: 15,
     cookTime: 20,
     servings: 4,
@@ -135,7 +135,7 @@ export const recipes: Recipe[] = [
     id: "recipe-2",
     title: "Chicken Fajita Bowl",
     description: "A colorful and flavorful bowl with grilled chicken, peppers, and rice.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/chicken-fajita.jpg",
     prepTime: 20,
     cookTime: 25,
     servings: 4,
@@ -182,7 +182,7 @@ export const recipes: Recipe[] = [
     id: "recipe-3",
     title: "Vegan Buddha Bowl",
     description: "A nourishing bowl packed with roasted vegetables, quinoa, and tahini dressing.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/buddha-bowl.jpg",
     prepTime: 15,
     cookTime: 30,
     servings: 2,
@@ -228,7 +228,7 @@ export const recipes: Recipe[] = [
     id: "recipe-4",
     title: "Mediterranean Salmon Bowl",
     description: "A protein-rich bowl featuring baked salmon, couscous, and Greek-inspired toppings.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/salmon-bowl.jpg",
     prepTime: 15,
     cookTime: 20,
     servings: 2,
@@ -272,7 +272,7 @@ export const recipes: Recipe[] = [
     id: "recipe-5",
     title: "Beef and Broccoli Stir Fry",
     description: "A quick and flavorful Asian-inspired stir fry with tender beef and crisp broccoli.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/beef-broccoli.jpg",
     prepTime: 15,
     cookTime: 15,
     servings: 4,
@@ -317,7 +317,7 @@ export const recipes: Recipe[] = [
     id: "recipe-6",
     title: "Spinach and Mushroom Frittata",
     description: "A versatile and protein-packed egg dish perfect for breakfast, brunch, or dinner.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/spinach-frittata.jpg",
     prepTime: 10,
     cookTime: 20,
     servings: 4,
@@ -363,7 +363,7 @@ export const recipes: Recipe[] = [
     id: "recipe-7",
     title: "Lentil and Sweet Potato Curry",
     description: "A hearty and warming plant-based curry packed with protein and flavor.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/lentil-curry.jpg",
     prepTime: 15,
     cookTime: 30,
     servings: 4,
@@ -411,7 +411,7 @@ export const recipes: Recipe[] = [
     id: "recipe-8",
     title: "Grilled Chicken Caesar Salad",
     description: "A classic salad with grilled chicken, crisp romaine, and homemade Caesar dressing.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/caesar-salad.jpg",
     prepTime: 20,
     cookTime: 15,
     servings: 2,
@@ -455,7 +455,7 @@ export const recipes: Recipe[] = [
     id: "recipe-9",
     title: "Black Bean and Quinoa Enchilada Bake",
     description: "A protein-rich Mexican-inspired casserole that's perfect for meal prep.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/enchilada-bake.jpg",
     prepTime: 20,
     cookTime: 30,
     servings: 6,
@@ -500,7 +500,7 @@ export const recipes: Recipe[] = [
     id: "recipe-10",
     title: "Honey Garlic Glazed Salmon",
     description: "A quick and flavorful salmon dish with a sticky sweet and savory glaze.",
-    image: "/placeholder.svg?height=400&width=600",
+    image: "/images/glazed-salmon.jpg",
     prepTime: 10,
     cookTime: 15,
     servings: 4,
@@ -824,6 +824,16 @@ export async function generateShoppingList(userId: string, mealPlanId: string) {
     week: "2023-05-01",
     items: sampleItems,
   }
+}
+
+export async function addRecipeToShoppingList(userId: string, recipeId: string, servings: number) {
+  // In a real app, this would add the recipe ingredients to the user's shopping list in the database
+  // For now, we'll just return a success message
+  console.log(`Added recipe ${recipeId} with ${servings} servings to shopping list for user ${userId}`)
+  return Promise.resolve({
+    success: true,
+    message: "Recipe ingredients added to shopping list",
+  })
 }
 
 export async function addMealToPlan(

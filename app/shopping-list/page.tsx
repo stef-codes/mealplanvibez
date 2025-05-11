@@ -12,6 +12,9 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { isPreviewEnvironment, generateShoppingList, type ShoppingListItem } from "@/lib/data"
 
+// Add this import at the top
+import { useSearchParams } from "next/navigation"
+
 export default function ShoppingListPage() {
   const { toast } = useToast()
   const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([])
@@ -19,12 +22,25 @@ export default function ShoppingListPage() {
   const [newItemQuantity, setNewItemQuantity] = useState("")
   const [newItemUnit, setNewItemUnit] = useState("")
 
-  // Load shopping list on mount
+  // Add this after the other useState declarations
+  const searchParams = useSearchParams()
+  const recipeId = searchParams.get("recipeId")
+  const recipeServings = searchParams.get("servings")
+
+  // Update the useEffect that loads the shopping list
   useEffect(() => {
     const loadShoppingList = async () => {
       try {
         // In a real app, this would fetch from an API
         const generatedList = await generateShoppingList("user-1", "meal-plan-1")
+
+        // If we have a recipeId in the URL, it means we just added a recipe to the shopping list
+        if (recipeId) {
+          toast({
+            title: "Recipe ingredients added",
+            description: "The ingredients have been added to your shopping list.",
+          })
+        }
 
         // Initialize with some sample items if the list is empty
         if (!generatedList.items || generatedList.items.length === 0) {
@@ -96,7 +112,7 @@ export default function ShoppingListPage() {
     }
 
     loadShoppingList()
-  }, [])
+  }, [toast, recipeId, recipeServings])
 
   // Group items by category
   const groupedItems = shoppingList.reduce(

@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation"
 import { Clock, Users, ChefHat, Heart, Share2, Plus, Minus, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getRecipeById } from "@/lib/data"
+import { getRecipeById, getRecipes, addRecipeToShoppingList } from "@/lib/data"
 import { useToast } from "@/hooks/use-toast"
 
 export default function RecipeDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { toast } = useToast()
   const [recipe, setRecipe] = useState<any>(null)
+  const [relatedRecipes, setRelatedRecipes] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [servings, setServings] = useState(4)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -24,6 +25,11 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
         if (recipeData) {
           setRecipe(recipeData)
           setServings(recipeData.servings || 4)
+
+          // Fetch related recipes (same cuisine type)
+          const allRecipes = await getRecipes({ cuisineType: recipeData.cuisineType })
+          const filtered = allRecipes.filter((r) => r.id !== recipeData.id).slice(0, 3)
+          setRelatedRecipes(filtered)
         }
       } catch (error) {
         console.error("Error fetching recipe:", error)
@@ -69,12 +75,28 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
     })
   }
 
-  const handleAddToShoppingList = () => {
-    toast({
-      title: "Added to shopping list",
-      description: "Ingredients have been added to your shopping list.",
-    })
-    router.push("/shopping-list")
+  const handleAddToShoppingList = async () => {
+    try {
+      if (!recipe) return
+
+      // Call the function to add recipe ingredients to shopping list
+      await addRecipeToShoppingList("user-1", recipe.id, servings)
+
+      toast({
+        title: "Added to shopping list",
+        description: "Ingredients have been added to your shopping list.",
+      })
+
+      // Pass recipe ID and servings as query parameters
+      router.push(`/shopping-list?recipeId=${recipe.id}&servings=${servings}`)
+    } catch (error) {
+      console.error("Error adding to shopping list:", error)
+      toast({
+        title: "Error",
+        description: "Failed to add ingredients to shopping list. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const toggleFavorite = () => {
@@ -287,25 +309,38 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
             <div className="bg-green-50 rounded-lg p-6 mb-6">
               <h3 className="font-semibold mb-4">You might also like</h3>
               <div className="space-y-4">
-                {/* This would be populated with actual related recipes */}
-                <RelatedRecipeCard
-                  id="recipe-2"
-                  title="Chicken Fajita Bowl"
-                  image="/placeholder.svg?height=80&width=120"
-                  time={45}
-                />
-                <RelatedRecipeCard
-                  id="recipe-3"
-                  title="Vegan Buddha Bowl"
-                  image="/placeholder.svg?height=80&width=120"
-                  time={45}
-                />
-                <RelatedRecipeCard
-                  id="recipe-5"
-                  title="Mediterranean Salmon Bowl"
-                  image="/placeholder.svg?height=80&width=120"
-                  time={35}
-                />
+                {relatedRecipes.length > 0 ? (
+                  relatedRecipes.map((relatedRecipe) => (
+                    <RelatedRecipeCard
+                      key={relatedRecipe.id}
+                      id={relatedRecipe.id}
+                      title={relatedRecipe.title}
+                      image={relatedRecipe.image}
+                      time={relatedRecipe.prepTime + relatedRecipe.cookTime}
+                    />
+                  ))
+                ) : (
+                  <>
+                    <RelatedRecipeCard
+                      id="recipe-2"
+                      title="Chicken Fajita Bowl"
+                      image="/images/chicken-fajita.jpg"
+                      time={45}
+                    />
+                    <RelatedRecipeCard
+                      id="recipe-3"
+                      title="Vegan Buddha Bowl"
+                      image="/images/buddha-bowl.jpg"
+                      time={45}
+                    />
+                    <RelatedRecipeCard
+                      id="recipe-5"
+                      title="Mediterranean Salmon Bowl"
+                      image="/images/salmon-bowl.jpg"
+                      time={35}
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -329,7 +364,7 @@ function NutritionCard({ label, value, unit }: { label: string; value: number; u
 
 function RelatedRecipeCard({ id, title, image, time }: { id: string; title: string; image: string; time: number }) {
   return (
-    <div className="flex items-center gap-3">
+    <a href={`/recipes/${id}`} className="flex items-center gap-3 hover:opacity-90 transition-opacity">
       <div className="h-16 w-16 rounded overflow-hidden flex-shrink-0">
         <img src={image || "/placeholder.svg"} alt={title} className="h-full w-full object-cover" />
       </div>
@@ -340,6 +375,6 @@ function RelatedRecipeCard({ id, title, image, time }: { id: string; title: stri
           <span className="text-xs text-muted-foreground">{time} min</span>
         </div>
       </div>
-    </div>
+    </a>
   )
 }
