@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ChefHat, ShoppingCart, Calendar, Heart } from "lucide-react"
+import { SearchExamples } from "@/components/search-examples"
 
 export default function Home() {
   return (
@@ -26,6 +27,11 @@ export default function Home() {
               <Button asChild size="lg" variant="outline">
                 <Link href="/recipes">Explore Recipes</Link>
               </Button>
+            </div>
+
+            {/* Add search examples */}
+            <div className="mt-8 max-w-2xl w-full">
+              <SearchExamples />
             </div>
           </div>
         </div>

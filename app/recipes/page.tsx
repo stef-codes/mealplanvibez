@@ -3,8 +3,8 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Search, Filter, Clock, AlertCircle } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Search, Filter, Clock, AlertCircle, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -24,13 +24,19 @@ import { Slider } from "@/components/ui/slider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { getRecipes, type Recipe, isPreviewEnvironment } from "@/lib/data"
 import { useAuth } from "@/hooks/use-auth"
+import { useToast } from "@/hooks/use-toast"
 
 export default function RecipesPage() {
   const router = useRouter()
   const { user } = useAuth()
+  const { toast } = useToast()
+  const searchParams = useSearchParams()
+  const queryFromUrl = searchParams.get("query")
   const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState(queryFromUrl || "")
   const [isLoading, setIsLoading] = useState(true)
+  const [isAISearching, setIsAISearching] = useState(false)
+  const [isAIAvailable, setIsAIAvailable] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState({
     cuisineType: "",
@@ -38,7 +44,21 @@ export default function RecipesPage() {
     maxTime: 60,
   })
 
-  // Load recipes on mount and when filters change
+  // Check if AI search is available
+  useEffect(() => {
+    // This is just a client-side check - the actual availability is determined server-side
+    setIsAIAvailable(process.env.NEXT_PUBLIC_AI_SEARCH_ENABLED === "true")
+  }, [])
+
+  // Execute search if query is provided in URL
+  useEffect(() => {
+    if (queryFromUrl) {
+      setSearchQuery(queryFromUrl)
+      handleSearch(queryFromUrl)
+    }
+  }, [queryFromUrl]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load recipes on mount
   useEffect(() => {
     const loadRecipes = async () => {
       setIsLoading(true)
@@ -50,13 +70,7 @@ export default function RecipesPage() {
           await new Promise((resolve) => setTimeout(resolve, 300))
         }
 
-        const fetchedRecipes = await getRecipes({
-          query: searchQuery,
-          cuisineType: filters.cuisineType || undefined,
-          dietaryRestrictions: filters.dietaryRestrictions.length > 0 ? filters.dietaryRestrictions : undefined,
-          maxTime: filters.maxTime,
-        })
-
+        const fetchedRecipes = await getRecipes()
         setRecipes(fetchedRecipes)
       } catch (err) {
         console.error("Error loading recipes:", err)
@@ -66,8 +80,10 @@ export default function RecipesPage() {
       }
     }
 
-    loadRecipes()
-  }, [searchQuery, filters])
+    if (!queryFromUrl) {
+      loadRecipes()
+    }
+  }, [queryFromUrl])
 
   // Apply user's dietary preferences if available
   useEffect(() => {
@@ -79,9 +95,106 @@ export default function RecipesPage() {
     }
   }, [user])
 
+  // Handle regular search with filters
+  const handleRegularSearch = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const fetchedRecipes = await getRecipes({
+        query: searchQuery,
+        cuisineType: filters.cuisineType || undefined,
+        dietaryRestrictions: filters.dietaryRestrictions.length > 0 ? filters.dietaryRestrictions : undefined,
+        maxTime: filters.maxTime,
+      })
+
+      setRecipes(fetchedRecipes)
+    } catch (err) {
+      console.error("Error searching recipes:", err)
+      setError("Failed to search recipes. Please try again later.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Generic search handler that decides whether to use AI or regular search
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
+      handleRegularSearch()
+      return
+    }
+
+    setIsAISearching(true)
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`)
+
+      // Check if the response is OK
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Search API error response:", errorText)
+        throw new Error(`Search request failed with status ${response.status}`)
+      }
+
+      let data
+      try {
+        data = await response.json()
+      } catch (jsonError) {
+        console.error("Error parsing JSON response:", jsonError)
+        throw new Error("Invalid response from search API")
+      }
+
+      // Set the recipes from the response
+      setRecipes(data.recipes || [])
+
+      // Check if AI was used
+      if (data.aiEnabled) {
+        toast({
+          title: "AI Search Results",
+          description: `Found ${data.recipes?.length || 0} recipes matching your query.`,
+        })
+      } else {
+        toast({
+          title: "Search Results",
+          description: data.message || `Found ${data.recipes?.length || 0} recipes using standard search.`,
+        })
+      }
+
+      // Log any errors that were returned
+      if (data.error) {
+        console.warn("Search API returned an error:", data.error)
+      }
+    } catch (err) {
+      console.error("Error with search:", err)
+      setError("Search failed. Please try again or use the filters instead.")
+
+      // Try to fall back to regular search
+      try {
+        await handleRegularSearch()
+        toast({
+          title: "Using standard search",
+          description: "AI search failed. Using standard search instead.",
+        })
+      } catch (fallbackErr) {
+        console.error("Fallback search also failed:", fallbackErr)
+      }
+    } finally {
+      setIsLoading(false)
+      setIsAISearching(false)
+    }
+  }
+
   // Handle search input
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value)
+  }
+
+  // Handle search form submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    handleSearch(searchQuery)
   }
 
   // Reset all filters
@@ -92,6 +205,21 @@ export default function RecipesPage() {
       maxTime: 60,
     })
     setSearchQuery("")
+
+    // Load all recipes
+    const loadAllRecipes = async () => {
+      setIsLoading(true)
+      try {
+        const fetchedRecipes = await getRecipes()
+        setRecipes(fetchedRecipes)
+      } catch (err) {
+        console.error("Error loading recipes:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadAllRecipes()
   }
 
   // Cuisine type options
@@ -108,22 +236,68 @@ export default function RecipesPage() {
     { id: "paleo", label: "Paleo" },
   ]
 
+  // Filter recipes based on current filters
+  const filteredRecipes = recipes.filter((recipe) => {
+    // Filter by cuisine type
+    if (filters.cuisineType && filters.cuisineType !== "all" && recipe.cuisineType !== filters.cuisineType) {
+      return false
+    }
+
+    // Filter by dietary restrictions
+    if (filters.dietaryRestrictions.length > 0) {
+      if (!filters.dietaryRestrictions.every((restriction) => recipe.dietaryRestrictions.includes(restriction))) {
+        return false
+      }
+    }
+
+    // Filter by max time
+    if (recipe.prepTime + recipe.cookTime > filters.maxTime) {
+      return false
+    }
+
+    return true
+  })
+
   return (
     <div className="container py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold">Recipes</h1>
 
         <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search recipes..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={handleSearch}
-            />
-          </div>
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search recipes or ask a question..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={handleSearchInputChange}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+              disabled={isLoading}
+            >
+              {isAISearching ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  <span>Searching...</span>
+                </>
+              ) : isAIAvailable ? (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  <span>AI Search</span>
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4" />
+                  <span>Search</span>
+                </>
+              )}
+            </Button>
+          </form>
 
           <Sheet>
             <SheetTrigger asChild>
@@ -206,6 +380,9 @@ export default function RecipesPage() {
                 <Button variant="outline" onClick={resetFilters}>
                   Reset Filters
                 </Button>
+                <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleRegularSearch()}>
+                  Apply Filters
+                </Button>
               </SheetFooter>
             </SheetContent>
           </Sheet>
@@ -242,7 +419,7 @@ export default function RecipesPage() {
           </div>
           <p className="mt-4 text-muted-foreground">Loading recipes...</p>
         </div>
-      ) : recipes.length === 0 ? (
+      ) : filteredRecipes.length === 0 ? (
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold mb-2">No recipes found</h2>
           <p className="text-muted-foreground mb-6">Try adjusting your filters or search query</p>
@@ -250,7 +427,7 @@ export default function RecipesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recipes.map((recipe) => (
+          {filteredRecipes.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} />
           ))}
         </div>
