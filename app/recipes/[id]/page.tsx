@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Clock, Users, ChefHat, Heart, Share2, Plus, Minus, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,9 +11,45 @@ import { useToast } from "@/hooks/use-toast"
 export default function RecipeDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { toast } = useToast()
-  const recipe = getRecipeById(params.id)
-  const [servings, setServings] = useState(recipe?.servings || 4)
+  const [recipe, setRecipe] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [servings, setServings] = useState(4)
   const [isFavorite, setIsFavorite] = useState(false)
+
+  // Fetch recipe data
+  useEffect(() => {
+    const fetchRecipe = async () => {
+      try {
+        const recipeData = await getRecipeById(params.id)
+        if (recipeData) {
+          setRecipe(recipeData)
+          setServings(recipeData.servings || 4)
+        }
+      } catch (error) {
+        console.error("Error fetching recipe:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchRecipe()
+  }, [params.id])
+
+  if (isLoading) {
+    return (
+      <div className="container py-12 text-center">
+        <div
+          className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent align-[-0.125em]"
+          role="status"
+        >
+          <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">
+            Loading...
+          </span>
+        </div>
+        <p className="mt-4">Loading recipe...</p>
+      </div>
+    )
+  }
 
   if (!recipe) {
     return (
@@ -78,6 +114,11 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
     return (originalQuantity * ratio).toFixed(1).replace(/\.0$/, "")
   }
 
+  // Ensure arrays exist before mapping
+  const dietaryRestrictions = recipe.dietaryRestrictions || []
+  const ingredients = recipe.ingredients || []
+  const instructions = recipe.instructions || []
+
   return (
     <div className="container py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -96,7 +137,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               <Clock className="h-5 w-5 text-green-600" />
               <div>
                 <p className="text-sm font-medium">Total Time</p>
-                <p className="text-sm text-muted-foreground">{recipe.prepTime + recipe.cookTime} min</p>
+                <p className="text-sm text-muted-foreground">{(recipe.prepTime || 0) + (recipe.cookTime || 0)} min</p>
               </div>
             </div>
 
@@ -140,12 +181,14 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
           </div>
 
           <div className="flex flex-wrap gap-2 mb-8">
-            {recipe.dietaryRestrictions.map((restriction) => (
+            {dietaryRestrictions.map((restriction: string) => (
               <span key={restriction} className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
                 {restriction}
               </span>
             ))}
-            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">{recipe.cuisineType}</span>
+            {recipe.cuisineType && (
+              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">{recipe.cuisineType}</span>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-3 mb-8">
@@ -174,7 +217,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
 
             <TabsContent value="ingredients" className="space-y-4">
               <ul className="space-y-2">
-                {recipe.ingredients.map((ingredient) => (
+                {ingredients.map((ingredient: any) => (
                   <li key={ingredient.id} className="flex items-start gap-2">
                     <div className="h-6 w-6 flex items-center justify-center rounded-full bg-green-100 text-green-800 flex-shrink-0 mt-0.5">
                       <span className="text-xs">•</span>
@@ -197,7 +240,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
 
             <TabsContent value="instructions" className="space-y-4">
               <ol className="space-y-4">
-                {recipe.instructions.map((instruction, index) => (
+                {instructions.map((instruction: string, index: number) => (
                   <li key={index} className="flex items-start gap-3">
                     <div className="h-6 w-6 flex items-center justify-center rounded-full bg-green-100 text-green-800 flex-shrink-0 mt-0.5">
                       <span className="text-xs">{index + 1}</span>
@@ -212,22 +255,22 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <NutritionCard
                   label="Calories"
-                  value={Math.round(recipe.nutritionInfo.calories * (servings / recipe.servings))}
+                  value={Math.round((recipe.nutritionInfo?.calories || 0) * (servings / (recipe.servings || 1)))}
                   unit="kcal"
                 />
                 <NutritionCard
                   label="Protein"
-                  value={Math.round(recipe.nutritionInfo.protein * (servings / recipe.servings))}
+                  value={Math.round((recipe.nutritionInfo?.protein || 0) * (servings / (recipe.servings || 1)))}
                   unit="g"
                 />
                 <NutritionCard
                   label="Carbs"
-                  value={Math.round(recipe.nutritionInfo.carbs * (servings / recipe.servings))}
+                  value={Math.round((recipe.nutritionInfo?.carbs || 0) * (servings / (recipe.servings || 1)))}
                   unit="g"
                 />
                 <NutritionCard
                   label="Fat"
-                  value={Math.round(recipe.nutritionInfo.fat * (servings / recipe.servings))}
+                  value={Math.round((recipe.nutritionInfo?.fat || 0) * (servings / (recipe.servings || 1)))}
                   unit="g"
                 />
               </div>
