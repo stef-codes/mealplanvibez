@@ -48,6 +48,7 @@ export default function RecipesPage() {
   useEffect(() => {
     // This is just a client-side check - the actual availability is determined server-side
     setIsAIAvailable(process.env.NEXT_PUBLIC_AI_SEARCH_ENABLED === "true")
+    console.log("AI search enabled check:", process.env.NEXT_PUBLIC_AI_SEARCH_ENABLED)
   }, [])
 
   // Execute search if query is provided in URL
@@ -261,7 +262,15 @@ export default function RecipesPage() {
   return (
     <div className="container py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <h1 className="text-3xl font-bold">Recipes</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold">Recipes</h1>
+          <Button asChild className="bg-green-600 hover:bg-green-700">
+            <Link href="/recipes/generate" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              <span>Generate Recipe</span>
+            </Link>
+          </Button>
+        </div>
 
         <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
           <form onSubmit={handleSearchSubmit} className="relative flex-1 flex gap-2">
@@ -284,11 +293,6 @@ export default function RecipesPage() {
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   <span>Searching...</span>
-                </>
-              ) : isAIAvailable ? (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  <span>AI Search</span>
                 </>
               ) : (
                 <>

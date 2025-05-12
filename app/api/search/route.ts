@@ -6,6 +6,11 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get("query") || ""
 
+  // Add debugging information
+  console.log("Search API called with query:", query)
+  console.log("OpenAI API key exists:", !!process.env.OPENAI_API_KEY)
+  console.log("AI search enabled:", process.env.NEXT_PUBLIC_AI_SEARCH_ENABLED)
+
   try {
     // Check if OpenAI API key is available
     if (!process.env.OPENAI_API_KEY) {
@@ -15,12 +20,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         recipes,
         aiEnabled: false,
-        message: "Using regular search (AI search unavailable)",
+        message: "Using regular search (OpenAI API key missing)",
       })
     }
 
     try {
+      console.log("Attempting AI search with query:", query)
       const recipes = await searchRecipesWithAI(query)
+      console.log("AI search successful, found", recipes.length, "recipes")
       return NextResponse.json({
         recipes,
         aiEnabled: true,

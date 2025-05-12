@@ -47,6 +47,7 @@ export async function searchRecipesWithAI(query: string): Promise<Recipe[]> {
     const allRecipes = await getRecipes()
 
     try {
+      console.log("Calling OpenAI API to extract search parameters...")
       // Use OpenAI to understand the query and extract search parameters
       const { text: rawSearchParamsText } = await generateText({
         model: openai("gpt-4o", { apiKey: openaiApiKey }),
@@ -120,6 +121,7 @@ export async function searchRecipesWithAI(query: string): Promise<Recipe[]> {
 
       // If no recipes match the filters, return a subset of all recipes
       if (filteredRecipes.length === 0) {
+        console.log("No recipes matched filters, using OpenAI to find relevant recipes")
         // Use OpenAI to find the most relevant recipes
         const { text: rawRelevantRecipesText } = await generateText({
           model: openai("gpt-4o", { apiKey: openaiApiKey }),
@@ -148,6 +150,7 @@ export async function searchRecipesWithAI(query: string): Promise<Recipe[]> {
 
         // Clean the response and parse the JSON
         const cleanedRelevantResponse = cleanJsonResponse(rawRelevantRecipesText)
+        console.log("Cleaned relevant recipes response:", cleanedRelevantResponse)
 
         let relevantRecipeIds
         try {
@@ -162,6 +165,7 @@ export async function searchRecipesWithAI(query: string): Promise<Recipe[]> {
         filteredRecipes = allRecipes.filter((recipe) => relevantRecipeIds.includes(recipe.id))
       }
 
+      console.log("AI search returning", filteredRecipes.length, "recipes")
       return filteredRecipes
     } catch (aiError) {
       console.error("Error using OpenAI for search:", aiError)
