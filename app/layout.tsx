@@ -7,6 +7,7 @@ import Footer from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 import { AuthProvider } from "@/hooks/use-auth"
+import { AuthRedirectHandler } from "@/components/auth-redirect-handler"
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -40,6 +41,7 @@ export default function RootLayout({
               <Footer />
             </div>
             <Toaster />
+            <AuthRedirectHandler />
           </ThemeProvider>
         </AuthProvider>
       </body>

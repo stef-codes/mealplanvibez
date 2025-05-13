@@ -18,3 +18,28 @@ export const getSupabaseBrowserClient = () => {
 
   return createClient(supabaseUrl, supabaseAnonKey)
 }
+
+// Handle OAuth redirects
+export const handleSupabaseOAuthRedirect = async () => {
+  if (typeof window === "undefined") return null
+
+  const supabase = getSupabaseBrowserClient()
+
+  try {
+    // Check if we have a hash in the URL
+    if (window.location.hash) {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (error) {
+        throw error
+      }
+
+      return data.session
+    }
+  } catch (error) {
+    console.error("Error handling OAuth redirect:", error)
+    return null
+  }
+
+  return null
+}

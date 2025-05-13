@@ -66,7 +66,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user && isMounted) {
           // Get user profile
-          const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+          let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+
+          // If no profile exists (e.g., first Google sign-in), create one
+          if (!profile) {
+            const userData = {
+              id: session.user.id,
+              full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || "",
+              email: session.user.email,
+            }
+
+            await supabase.from("profiles").upsert(userData)
+            profile = userData
+          }
 
           // Get user preferences
           const { data: preferences } = await supabase
@@ -74,6 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .select("*")
             .eq("user_id", session.user.id)
             .single()
+
+          // If no preferences exist, create default ones
+          if (!preferences) {
+            await supabase.from("user_preferences").upsert({
+              user_id: session.user.id,
+              household_size: 1,
+              instacart_connected: false,
+            })
+          }
 
           // Get user dietary restrictions
           const { data: dietaryRestrictions } = await supabase
@@ -96,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (isMounted) {
             setUser({
               id: session.user.id,
-              name: profile?.full_name || session.user.email?.split("@")[0] || "",
+              name: profile?.full_name || session.user.user_metadata?.name || session.user.email?.split("@")[0] || "",
               email: session.user.email || "",
               preferences: {
                 householdSize: preferences?.household_size || 1,

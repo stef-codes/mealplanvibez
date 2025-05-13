@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
+import { GoogleSignInButton } from "@/components/google-sign-in-button"
 
 // Form validation schema
 const loginSchema = z.object({
@@ -93,16 +94,28 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <div className="text-right">
-                <Link href="/forgot-password" className="text-sm text-green-600 hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
               <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Log In"}
               </Button>
             </form>
           </Form>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton />
+
+          <div className="text-right mt-4">
+            <Link href="/forgot-password" className="text-sm text-green-600 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">
