@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
+import { SpeechInput } from "@/components/speech-input"
 import type { GeneratedRecipe } from "@/lib/actions/generate-recipe"
 
 export default function GenerateRecipePage() {
@@ -23,6 +24,14 @@ export default function GenerateRecipePage() {
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPrompt(e.target.value)
+  }
+
+  const handleSpeechInput = (text: string) => {
+    setPrompt(text)
+    toast({
+      title: "Speech captured",
+      description: "Your spoken description has been added to the input field.",
+    })
   }
 
   const testOpenAIConnection = async () => {
@@ -126,18 +135,22 @@ export default function GenerateRecipePage() {
             <CardHeader>
               <CardTitle>Describe Your Recipe</CardTitle>
               <CardDescription>
-                Tell us what kind of recipe you want to create. Be as specific as you like!
+                Tell us what kind of recipe you want to create. Type or speak your description!
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Input
-                    placeholder="E.g., A healthy vegetarian pasta dish with mushrooms and spinach"
-                    value={prompt}
-                    onChange={handlePromptChange}
-                    className="h-24"
-                  />
+                  <div className="flex items-center gap-2 mb-2">
+                    <Input
+                      placeholder="E.g., A healthy vegetarian pasta dish with mushrooms and spinach"
+                      value={prompt}
+                      onChange={handlePromptChange}
+                      className="h-24"
+                    />
+                  </div>
+
+                  <SpeechInput onTextCaptured={handleSpeechInput} className="mt-2" />
                 </div>
 
                 {error && (
