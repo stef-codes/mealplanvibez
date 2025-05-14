@@ -16,30 +16,60 @@ export const getSupabaseBrowserClient = () => {
     throw new Error("Missing Supabase environment variables")
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey)
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      flowType: "implicit", // Try implicit flow which can be more reliable
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  })
 }
 
 // Handle OAuth redirects
 export const handleSupabaseOAuthRedirect = async () => {
   if (typeof window === "undefined") return null
 
-  const supabase = getSupabaseBrowserClient()
-
   try {
-    // Check if we have a hash in the URL
-    if (window.location.hash) {
-      const { data, error } = await supabase.auth.getSession()
+    const supabase = getSupabaseBrowserClient()
 
-      if (error) {
-        throw error
-      }
+    // Log the current URL for debugging
+    console.log("Current URL:", window.location.href)
 
+    // Get the current session
+    const { data, error } = await supabase.auth.getSession()
+
+    if (error) {
+      console.error("Error getting session:", error)
+      throw error
+    }
+
+    if (data?.session) {
+      console.log("Session found:", data.session)
       return data.session
     }
+
+    // If no session but we have a hash, try to exchange the token
+    if (window.location.hash) {
+      console.log("Hash found, attempting to set session from URL")
+      const { data: hashData, error: hashError } = await supabase.auth.getUser()
+
+      if (hashError) {
+        console.error("Error getting user from hash:", hashError)
+        throw hashError
+      }
+
+      if (hashData?.user) {
+        console.log("User found from hash:", hashData.user)
+        // Get the session again after setting from URL
+        const { data: refreshedData } = await supabase.auth.getSession()
+        return refreshedData.session
+      }
+    }
+
+    return null
   } catch (error) {
     console.error("Error handling OAuth redirect:", error)
     return null
   }
-
-  return null
 }

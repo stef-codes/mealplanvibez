@@ -19,10 +19,14 @@ export function GoogleSignInButton({ className, redirectTo = "/recipes" }: Googl
       setIsLoading(true)
       const supabase = getSupabaseBrowserClient()
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Construct the full redirect URL
+      const fullRedirectUrl = new URL(redirectTo, window.location.origin).toString()
+      console.log("Redirect URL:", fullRedirectUrl)
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}${redirectTo}`,
+          redirectTo: fullRedirectUrl,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -31,10 +35,12 @@ export function GoogleSignInButton({ className, redirectTo = "/recipes" }: Googl
       })
 
       if (error) {
+        console.error("OAuth error details:", error)
         throw error
       }
 
-      // No need for success toast here as the page will redirect
+      console.log("OAuth response:", data)
+      // The page will redirect to Google's auth page
     } catch (error) {
       console.error("Google sign in error:", error)
       toast({
