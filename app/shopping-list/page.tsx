@@ -15,6 +15,9 @@ import { isPreviewEnvironment, generateShoppingList, type ShoppingListItem } fro
 // Add this import at the top
 import { useSearchParams } from "next/navigation"
 
+// Add the import for the InstacartIntegration component
+import { InstacartIntegration } from "@/components/instacart-integration"
+
 export default function ShoppingListPage() {
   const { toast } = useToast()
   const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([])
@@ -186,19 +189,37 @@ export default function ShoppingListPage() {
   }
 
   // Send to Instacart
-  const sendToInstacart = () => {
+  const sendToInstacart = async () => {
     toast({
       title: "Sending to Instacart",
       description: "Your shopping list is being transferred to Instacart.",
     })
 
-    // Simulate API call delay
-    setTimeout(() => {
+    try {
+      // Filter out checked items if needed
+      const itemsToSend = shoppingList.filter((item) => !item.checked)
+
+      const result = await sendToInstacart(itemsToSend, "ChefItUp Shopping List")
+
+      if (result.success && result.url) {
+        // Open the Instacart URL in a new tab
+        window.open(result.url, "_blank")
+
+        toast({
+          title: "List sent to Instacart",
+          description: "Your shopping list has been added to your Instacart cart.",
+        })
+      } else {
+        throw new Error(result.error || "Failed to send to Instacart")
+      }
+    } catch (error) {
+      console.error("Error sending to Instacart:", error)
       toast({
-        title: "List sent to Instacart",
-        description: "Your shopping list has been added to your Instacart cart.",
+        title: "Error sending to Instacart",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
       })
-    }, 1500)
+    }
   }
 
   // Share list
@@ -237,10 +258,7 @@ export default function ShoppingListPage() {
             <span>Share</span>
           </Button>
 
-          <Button className="flex items-center gap-2 bg-green-600 hover:bg-green-700" onClick={sendToInstacart}>
-            <ShoppingCart className="h-4 w-4" />
-            <span>Send to Instacart</span>
-          </Button>
+          <InstacartIntegration shoppingList={shoppingList} />
         </div>
       </div>
 
