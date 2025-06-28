@@ -1,8 +1,6 @@
-"use server"
-
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
-import { getRecipes, type Recipe } from "@/lib/data"
+import { getRecipes, type Recipe } from "../data/recipes"
 
 // Helper function to clean OpenAI response of markdown formatting
 function cleanJsonResponse(text: string): string {
@@ -35,7 +33,7 @@ export async function searchRecipesWithAI(query: string): Promise<Recipe[]> {
     }
 
     // Check if OpenAI API key is available
-    const openaiApiKey = process.env.OPENAI_API_KEY
+    const openaiApiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY
     if (!openaiApiKey) {
       console.warn("OpenAI API key is missing in server action. Falling back to regular search.")
       return getRecipes({ query })

@@ -103,7 +103,7 @@ export default function RecipesScreen() {
         ))}
       </ScrollView>
 
-      <FAB icon="auto-fix-high" label="Generate Recipe" style={styles.fab} onPress={navigateToGenerate} />
+      <FAB icon="magic-staff" label="Generate Recipe" style={styles.fab} onPress={navigateToGenerate} />
     </View>
   )
 }

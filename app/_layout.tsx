@@ -22,10 +22,8 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="recipe/[id]" options={{ title: "Recipe Details" }} />
             <Stack.Screen name="generate-recipe" options={{ title: "Generate Recipe" }} />
-            <Stack.Screen name="meal-planner" options={{ title: "Meal Planner" }} />
           </Stack>
           <StatusBar style="light" />
         </AuthProvider>

@@ -1,9 +1,11 @@
+import { createClient } from "@supabase/supabase-js"
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+
 // Function to determine if we're in a preview environment or if Supabase credentials are missing
 export function isPreviewEnvironment() {
   // Check if Supabase credentials are missing
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
   if (!supabaseUrl || !supabaseAnonKey) {
     return true
   }

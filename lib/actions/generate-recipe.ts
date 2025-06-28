@@ -1,5 +1,3 @@
-"use server"
-
 import { generateObject } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
@@ -39,7 +37,7 @@ export async function generateRecipe(prompt: string): Promise<{
 }> {
   try {
     // Check if OpenAI API key is available
-    const openaiApiKey = process.env.OPENAI_API_KEY
+    const openaiApiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY
     if (!openaiApiKey) {
       console.warn("OpenAI API key is missing. Cannot generate recipe.")
       return {

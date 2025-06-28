@@ -1,6 +1,4 @@
-"use server"
-
-import type { ShoppingListItem } from "@/lib/data"
+import type { ShoppingListItem } from "../data/recipes"
 
 // Define types for Instacart API
 type InstacartLineItem = {
@@ -32,7 +30,7 @@ type InstacartPayload = {
 }
 
 // Check if we should use mock mode
-const shouldUseMockMode = process.env.INSTACART_MOCK_MODE === "true" || !process.env.INSTACART_API_KEY
+const shouldUseMockMode = process.env.EXPO_PUBLIC_INSTACART_MOCK_MODE === "true" || !process.env.EXPO_PUBLIC_INSTACART_API_KEY
 
 // Mock function to simulate Instacart API response
 const mockInstacartResponse = (items: ShoppingListItem[], title: string) => {
@@ -99,7 +97,7 @@ export async function sendToInstacart(
     console.log("Sending to Instacart:", JSON.stringify(payload, null, 2))
 
     // Get the API key from server-side environment variable
-    const apiKey = process.env.INSTACART_API_KEY
+    const apiKey = process.env.EXPO_PUBLIC_INSTACART_API_KEY
     if (!apiKey) {
       throw new Error("Instacart API key is not configured")
     }
@@ -148,7 +146,7 @@ export async function sendToInstacart(
       success: false,
       error: errorMessage,
       debug: {
-        hasApiKey: !!process.env.INSTACART_API_KEY,
+        hasApiKey: !!process.env.EXPO_PUBLIC_INSTACART_API_KEY,
         errorType: error instanceof Error ? error.constructor.name : typeof error,
         errorDetails: error instanceof Error ? { message: error.message, stack: error.stack } : String(error),
       },
@@ -180,8 +178,8 @@ export async function testInstacartConnection(): Promise<{
     }
 
     // Check if API key exists
-    const apiKey = process.env.INSTACART_API_KEY
-    console.log("INSTACART_API_KEY exists:", !!apiKey)
+    const apiKey = process.env.EXPO_PUBLIC_INSTACART_API_KEY
+    console.log("EXPO_PUBLIC_INSTACART_API_KEY exists:", !!apiKey)
 
     if (!apiKey) {
       console.log("No API key found in environment variables")
@@ -199,93 +197,81 @@ export async function testInstacartConnection(): Promise<{
 
     console.log("API key found, first few chars:", apiKey.substring(0, 3) + "...")
 
-    // Make a simple request to test the connection
-    // We'll use a minimal payload that should be valid
-    const testPayload = {
-      title: "Test Connection",
-      link_type: "shopping_list",
-      expires_in: 1, // 1 day
-      line_items: [
-        {
-          name: "Test Item",
-          quantity: 1,
-          unit: "",
-        },
-      ],
+    // Test the API connection
+    const response = await fetch("https://connect.dev.instacart.tools/idp/v1/products/products_link", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        title: "Test Connection",
+        link_type: "shopping_list",
+        expires_in: 1,
+        line_items: [
+          {
+            name: "Test Item",
+            quantity: 1,
+            unit: "piece",
+          },
+        ],
+      }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Instacart API test failed (${response.status}): ${errorText}`)
     }
 
-    console.log("Sending test payload to Instacart API:", JSON.stringify(testPayload, null, 2))
+    const data = await response.json()
 
-    try {
-      const response = await fetch("https://connect.dev.instacart.tools/idp/v1/products/products_link", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(testPayload),
-      })
-
-      console.log("Received response from Instacart API:", {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-      })
-
-      const responseText = await response.text()
-      console.log("Response text:", responseText)
-
-      let responseData
-      try {
-        responseData = JSON.parse(responseText)
-        console.log("Parsed response data:", responseData)
-      } catch (e) {
-        console.error("Failed to parse response as JSON:", e)
-        responseData = { rawText: responseText }
-      }
-
-      if (!response.ok) {
-        return {
-          success: false,
-          message: `API returned error: ${response.status} ${response.statusText}`,
-          debug: {
-            status: response.status,
-            response: responseData,
-            headers: Object.fromEntries(response.headers.entries()),
-          },
-        }
-      }
-
-      return {
-        success: true,
-        message: "Successfully connected to Instacart API",
-        debug: {
-          response: responseData,
-        },
-      }
-    } catch (fetchError) {
-      console.error("Fetch error during API call:", fetchError)
-      return {
-        success: false,
-        message: fetchError instanceof Error ? fetchError.message : "Error making API request",
-        debug: {
-          errorType: fetchError instanceof Error ? fetchError.constructor.name : typeof fetchError,
-          errorDetails:
-            fetchError instanceof Error ? { message: fetchError.message, stack: fetchError.stack } : String(fetchError),
-        },
-      }
+    return {
+      success: true,
+      message: "Successfully connected to Instacart API",
+      debug: {
+        responseStatus: response.status,
+        responseData: data,
+        environment: process.env.NODE_ENV,
+      },
     }
   } catch (error) {
-    console.error("Unexpected error in testInstacartConnection:", error)
+    console.error("Error testing Instacart connection:", error)
+
+    let errorMessage = "Unknown error occurred"
+    if (error instanceof Error) {
+      errorMessage = error.message
+    }
+
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unknown error occurred in test function",
+      message: `Failed to connect to Instacart API: ${errorMessage}`,
       debug: {
         errorType: error instanceof Error ? error.constructor.name : typeof error,
-        stack: error instanceof Error ? error.stack : undefined,
-        errorString: String(error),
+        errorDetails: error instanceof Error ? { message: error.message, stack: error.stack } : String(error),
+        environment: process.env.NODE_ENV,
       },
+    }
+  }
+}
+
+export async function toggleMockMode(): Promise<{ success: boolean; message: string; mockMode: boolean }> {
+  try {
+    // In a real implementation, you might want to store this in a database or secure storage
+    // For now, we'll just return the current state
+    const currentMockMode = shouldUseMockMode
+
+    return {
+      success: true,
+      message: `Mock mode is currently ${currentMockMode ? "enabled" : "disabled"}`,
+      mockMode: currentMockMode,
+    }
+  } catch (error) {
+    console.error("Error toggling mock mode:", error)
+    return {
+      success: false,
+      message: "Failed to toggle mock mode",
+      mockMode: shouldUseMockMode,
     }
   }
 }
