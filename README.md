@@ -37,6 +37,18 @@ A React Native Expo app for meal planning, recipe discovery, and grocery shoppin
    EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    \`\`\`
 
+   **To get your Supabase credentials:**
+   1. Go to [supabase.com](https://supabase.com) and create a new project
+   2. Once your project is created, go to Settings > API
+   3. Copy the "Project URL" and "anon public" key
+   4. Paste them in your `.env` file
+
+   **Enable Google OAuth (optional):**
+   1. In your Supabase dashboard, go to Authentication > Providers
+   2. Enable Google provider
+   3. Add your Google OAuth credentials (Client ID and Client Secret)
+   4. Set the redirect URL to: `chefitup://auth/callback`
+
 4. Start the development server:
    \`\`\`bash
    npx expo start

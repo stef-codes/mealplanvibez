@@ -21,7 +21,13 @@ export default function RootLayout() {
               },
             }}
           >
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="landing" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="signup" options={{ headerShown: false }} />
+            <Stack.Screen name="auth-test" options={{ title: "Auth Test" }} />
+            <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
             <Stack.Screen name="recipe/[id]" options={{ title: "Recipe Details" }} />
             <Stack.Screen name="generate-recipe" options={{ title: "Generate Recipe" }} />
           </Stack>

@@ -2,12 +2,12 @@
 
 import { useState } from "react"
 import { View, ScrollView, StyleSheet, Alert } from "react-native"
-import { Title, Button, Card, List, Switch, Divider, Avatar, Paragraph, TextInput, Chip, Menu, DropDown } from "react-native-paper"
-import { useAuth } from "../../lib/auth/AuthContext"
+import { Title, Button, Card, List, Switch, Divider, Avatar, Paragraph, TextInput, Chip, Menu } from "react-native-paper"
+import { useAuth } from "../lib/auth/AuthContext"
 import { router } from "expo-router"
-import { theme } from "../../lib/theme"
+import { theme } from "../lib/theme"
 
-export default function ProfileScreen() {
+export default function StandaloneProfileScreen() {
   const { user, signOut } = useAuth()
   const [notifications, setNotifications] = useState(true)
   const [darkMode, setDarkMode] = useState(false)
@@ -72,6 +72,7 @@ export default function ProfileScreen() {
     return level ? level.label : "Select activity level"
   }
 
+  // If user is not logged in, show demo version
   if (!user) {
     return (
       <ScrollView style={styles.container}>
@@ -339,6 +340,7 @@ export default function ProfileScreen() {
     )
   }
 
+  // If user is logged in, show full profile
   return (
     <ScrollView style={styles.container}>
       {/* Profile Header */}
@@ -632,21 +634,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
-  loginPrompt: {
-    margin: 16,
-  },
-  loginPromptContent: {
-    alignItems: "center",
-    padding: 24,
-  },
-  loginPromptText: {
-    textAlign: "center",
-    marginVertical: 16,
-    color: "gray",
-  },
-  loginButton: {
-    backgroundColor: theme.colors.primary,
-  },
   profileCard: {
     margin: 16,
     marginBottom: 8,
@@ -656,26 +643,26 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   avatar: {
-    backgroundColor: theme.colors.primary,
     marginBottom: 16,
+    backgroundColor: theme.colors.primary,
   },
   userName: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 4,
+    marginBottom: 8,
   },
   userEmail: {
-    color: "gray",
     fontSize: 16,
+    color: "gray",
+    marginBottom: 8,
+  },
+  diabetesChip: {
+    backgroundColor: theme.colors.primaryContainer,
+    marginTop: 8,
   },
   healthCard: {
     margin: 16,
     marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    marginBottom: 8,
-    color: theme.colors.primary,
   },
   inputGroup: {
     marginBottom: 16,
@@ -694,10 +681,6 @@ const styles = StyleSheet.create({
   },
   dropdownContent: {
     padding: 16,
-  },
-  diabetesChip: {
-    backgroundColor: theme.colors.primaryContainer,
-    marginTop: 8,
   },
   physicalCard: {
     margin: 16,
@@ -738,26 +721,31 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: "center",
-    padding: 24,
+    padding: 16,
   },
   version: {
-    color: "gray",
     fontSize: 12,
+    color: "gray",
   },
   signInPrompt: {
-    margin: 16,
+    marginTop: 16,
+    backgroundColor: theme.colors.primaryContainer,
   },
   signInPromptContent: {
     alignItems: "center",
-    padding: 24,
+    padding: 16,
   },
   signInPromptText: {
     textAlign: "center",
-    marginVertical: 16,
+    marginBottom: 16,
     color: "gray",
+  },
+  loginButton: {
+    backgroundColor: theme.colors.primary,
   },
   signInCard: {
     margin: 16,
+    marginBottom: 8,
   },
   signInDescription: {
     textAlign: "center",
@@ -765,11 +753,17 @@ const styles = StyleSheet.create({
     color: "gray",
   },
   signupButton: {
-    backgroundColor: theme.colors.primary,
+    marginTop: 8,
   },
   demoText: {
     textAlign: "center",
     marginBottom: 16,
     color: "gray",
+    fontStyle: "italic",
   },
-})
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+}) 

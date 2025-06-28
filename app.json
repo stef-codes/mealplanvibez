@@ -28,13 +28,6 @@
     },
     "plugins": [
       "expo-router"
-      // Temporarily disabled to fix startup issue
-      // [
-      //   "expo-auth-session",
-      //   {
-      //     "schemes": ["chefitup"]
-      //   }
-      // ]
     ],
     "scheme": "chefitup",
     "extra": {

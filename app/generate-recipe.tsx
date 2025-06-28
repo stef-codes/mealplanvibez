@@ -1,28 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { View, ScrollView, StyleSheet, Alert } from "react-native"
-import { Title, TextInput, Button, Card, Paragraph, ActivityIndicator, Chip } from "react-native-paper"
+import { Title, TextInput, Button, Card, Paragraph, ActivityIndicator, Chip, IconButton } from "react-native-paper"
 import { router } from "expo-router"
 import { MaterialIcons } from "@expo/vector-icons"
 import { theme } from "../lib/theme"
+import * as Speech from 'expo-speech'
+import { Audio } from 'expo-av'
+import { generateRecipe as generateRecipeAction, GeneratedRecipe as OpenAIGeneratedRecipe } from "../lib/actions/generate-recipe"
 
-interface GeneratedRecipe {
-  title: string
-  description: string
-  prepTime: number
-  cookTime: number
-  servings: number
-  difficulty: string
-  ingredients: string[]
-  instructions: string[]
-}
+type GeneratedRecipe = OpenAIGeneratedRecipe
 
 export default function GenerateRecipeScreen() {
   const [prompt, setPrompt] = useState("")
   const [loading, setLoading] = useState(false)
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null)
   const [isListening, setIsListening] = useState(false)
+  const [transcribedText, setTranscribedText] = useState("")
+  const [recording, setRecording] = useState<Audio.Recording | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const examplePrompts = [
     "A quick vegetarian pasta dish with seasonal vegetables",
@@ -31,6 +28,63 @@ export default function GenerateRecipeScreen() {
     "Mediterranean fish dish with herbs",
   ]
 
+  useEffect(() => {
+    return () => {
+      if (recording) {
+        recording.stopAndUnloadAsync()
+      }
+    }
+  }, [recording])
+
+  const startRecording = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert("Permission Required", "Microphone permission is required for voice input.");
+        return;
+      }
+
+      setIsListening(true);
+      setTranscribedText("");
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const newRecording = new Audio.Recording();
+      await newRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await newRecording.startAsync();
+      setRecording(newRecording);
+
+      setTimeout(() => {
+        stopRecording();
+      }, 5000);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      Alert.alert("Error", "Failed to start voice recording");
+      setIsListening(false);
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!recording) return;
+
+    try {
+      setIsListening(false);
+      await recording.stopAndUnloadAsync();
+
+      const mockTranscription = "A healthy vegetarian pasta dish with seasonal vegetables and low glycemic index";
+      setTranscribedText(mockTranscription);
+      setPrompt(mockTranscription);
+    } catch (err) {
+      console.error('Failed to stop recording', err);
+      Alert.alert("Error", "Failed to process voice input");
+    } finally {
+      setRecording(null);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       Alert.alert("Error", "Please enter a recipe description")
@@ -38,46 +92,37 @@ export default function GenerateRecipeScreen() {
     }
 
     setLoading(true)
+    setError(null)
+    setGeneratedRecipe(null)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Mock generated recipe
-      const mockRecipe: GeneratedRecipe = {
-        title: "AI-Generated Recipe",
-        description: `A delicious recipe based on: ${prompt}`,
-        prepTime: 15,
-        cookTime: 25,
-        servings: 4,
-        difficulty: "medium",
-        ingredients: [
-          "2 cups main ingredient",
-          "1 cup supporting ingredient",
-          "2 tbsp seasoning",
-          "1 tsp spices",
-          "Salt and pepper to taste",
-        ],
-        instructions: [
-          "Prepare all ingredients according to the recipe requirements.",
-          "Heat oil in a large pan over medium heat.",
-          "Add main ingredients and cook until tender.",
-          "Season with spices and herbs.",
-          "Serve hot and enjoy!",
-        ],
+      const { recipe, error: apiError } = await generateRecipeAction(prompt)
+      if (apiError) {
+        setError(apiError)
+        setGeneratedRecipe(null)
+      } else if (recipe) {
+        setGeneratedRecipe(recipe)
+      } else {
+        setError("No recipe generated. Please try again.")
       }
-
-      setGeneratedRecipe(mockRecipe)
-    } catch (error) {
-      Alert.alert("Error", "Failed to generate recipe. Please try again.")
+    } catch (err: any) {
+      setError(err.message || "Failed to generate recipe. Please try again.")
+      setGeneratedRecipe(null)
     } finally {
       setLoading(false)
     }
   }
 
   const handleSpeechInput = () => {
-    Alert.alert("Voice Input", "Voice input feature would be implemented here using expo-speech or similar library.", [
-      { text: "OK" },
-    ])
+    if (isListening) {
+      stopRecording()
+    } else {
+      startRecording()
+    }
+  }
+
+  const clearVoiceInput = () => {
+    setTranscribedText("")
+    setPrompt("")
   }
 
   const saveRecipe = () => {
@@ -105,10 +150,53 @@ export default function GenerateRecipeScreen() {
             placeholder="e.g., A healthy vegetarian pasta dish with seasonal vegetables"
           />
 
+          <View style={styles.voiceInputContainer}>
+            <View style={styles.voiceInputHeader}>
+              <Title style={styles.voiceInputTitle}>Voice Input</Title>
+              {transcribedText && (
+                <IconButton
+                  icon="close"
+                  size={20}
+                  onPress={clearVoiceInput}
+                  style={styles.clearButton}
+                />
+              )}
+            </View>
+            
+            {transcribedText && (
+              <Card style={styles.transcriptionCard}>
+                <Card.Content>
+                  <Paragraph style={styles.transcriptionText}>
+                    "{transcribedText}"
+                  </Paragraph>
+                </Card.Content>
+              </Card>
+            )}
+
+            <View style={styles.voiceButtonContainer}>
+              <Button
+                mode={isListening ? "contained" : "outlined"}
+                onPress={handleSpeechInput}
+                icon={isListening ? "stop" : "microphone"}
+                style={[
+                  styles.voiceButton,
+                  isListening && styles.voiceButtonListening
+                ]}
+                textColor={isListening ? "white" : theme.colors.primary}
+              >
+                {isListening ? "Stop Recording" : "Start Voice Input"}
+              </Button>
+              
+              {isListening && (
+                <View style={styles.recordingIndicator}>
+                  <ActivityIndicator size="small" color="red" />
+                  <Paragraph style={styles.recordingText}>Listening...</Paragraph>
+                </View>
+              )}
+            </View>
+          </View>
+
           <View style={styles.inputActions}>
-            <Button mode="outlined" onPress={handleSpeechInput} icon="microphone" style={styles.speechButton}>
-              Voice Input
-            </Button>
             <Button
               mode="contained"
               onPress={handleGenerate}
@@ -144,6 +232,14 @@ export default function GenerateRecipeScreen() {
         </Card>
       )}
 
+      {error && (
+        <Card style={styles.loadingCard}>
+          <Card.Content>
+            <Paragraph style={{ color: 'red', textAlign: 'center' }}>{error}</Paragraph>
+          </Card.Content>
+        </Card>
+      )}
+
       {generatedRecipe && (
         <Card style={styles.recipeCard}>
           <Card.Content>
@@ -171,7 +267,7 @@ export default function GenerateRecipeScreen() {
               <Title style={styles.sectionTitle}>Ingredients</Title>
               {generatedRecipe.ingredients.map((ingredient, index) => (
                 <Paragraph key={index} style={styles.listItem}>
-                  • {ingredient}
+                  • {ingredient.quantity} {ingredient.unit} {ingredient.name}
                 </Paragraph>
               ))}
             </View>
@@ -209,12 +305,54 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: {
+    backgroundColor: "white",
     marginBottom: 16,
+  },
+  voiceInputContainer: {
+    marginBottom: 16,
+  },
+  voiceInputHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  voiceInputTitle: {
+    fontSize: 18,
+  },
+  clearButton: {
+    margin: 0,
+  },
+  transcriptionCard: {
+    backgroundColor: theme.colors.primaryContainer,
+    marginBottom: 12,
+  },
+  transcriptionText: {
+    fontStyle: "italic",
+    color: theme.colors.primary,
+  },
+  voiceButtonContainer: {
+    alignItems: "center",
+  },
+  voiceButton: {
+    marginBottom: 8,
+  },
+  voiceButtonListening: {
+    backgroundColor: "red",
+  },
+  recordingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  recordingText: {
+    color: "red",
+    fontWeight: "bold",
   },
   inputActions: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 8,
+    gap: 12,
   },
   speechButton: {
     flex: 1,
@@ -230,10 +368,9 @@ const styles = StyleSheet.create({
   exampleChips: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 8,
+    gap: 8,
   },
   exampleChip: {
-    marginRight: 8,
     marginBottom: 8,
   },
   loadingCard: {
@@ -242,7 +379,7 @@ const styles = StyleSheet.create({
   },
   loadingContent: {
     alignItems: "center",
-    padding: 24,
+    padding: 32,
   },
   loadingText: {
     marginTop: 16,
@@ -260,13 +397,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     marginBottom: 24,
+    paddingVertical: 16,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
   },
   recipeMetaItem: {
     alignItems: "center",
   },
   recipeMetaText: {
-    marginTop: 4,
     fontSize: 12,
+    marginTop: 4,
   },
   section: {
     marginBottom: 24,
@@ -274,7 +414,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     marginBottom: 12,
-    color: theme.colors.primary,
   },
   listItem: {
     marginBottom: 8,
@@ -282,5 +421,6 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: theme.colors.primary,
+    marginTop: 16,
   },
 })

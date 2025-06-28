@@ -89,6 +89,10 @@ export default function RecipeDetailScreen() {
             <MaterialIcons name="restaurant" size={20} color={theme.colors.primary} />
             <Paragraph style={styles.metaText}>{recipe.difficulty}</Paragraph>
           </View>
+          <View style={styles.metaItem}>
+            <MaterialIcons name="monitor-heart" size={20} color={theme.colors.primary} />
+            <Paragraph style={styles.metaText}>GI: {recipe.nutritionInfo.glycemicIndex}</Paragraph>
+          </View>
         </View>
 
         <View style={styles.chips}>
@@ -148,6 +152,7 @@ export default function RecipeDetailScreen() {
         <Card style={styles.section}>
           <Card.Content>
             <Title>Nutrition Information</Title>
+            <Paragraph style={styles.nutritionNote}>Per serving</Paragraph>
             <View style={styles.nutritionGrid}>
               <View style={styles.nutritionItem}>
                 <Paragraph style={styles.nutritionValue}>{recipe.nutritionInfo.calories}</Paragraph>
@@ -164,6 +169,10 @@ export default function RecipeDetailScreen() {
               <View style={styles.nutritionItem}>
                 <Paragraph style={styles.nutritionValue}>{recipe.nutritionInfo.fat}g</Paragraph>
                 <Paragraph style={styles.nutritionLabel}>Fat</Paragraph>
+              </View>
+              <View style={styles.nutritionItem}>
+                <Paragraph style={styles.nutritionValue}>{recipe.nutritionInfo.glycemicIndex}</Paragraph>
+                <Paragraph style={styles.nutritionLabel}>Glycemic Index</Paragraph>
               </View>
             </View>
           </Card.Content>
@@ -278,5 +287,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "gray",
     marginTop: 4,
+  },
+  nutritionNote: {
+    fontSize: 12,
+    color: "gray",
+    marginBottom: 8,
   },
 })

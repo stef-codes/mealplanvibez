@@ -16,6 +16,7 @@ export interface Recipe {
     protein: number
     carbs: number
     fat: number
+    glycemicIndex: number
   }
 }
 
@@ -59,6 +60,7 @@ export const sampleRecipes: Recipe[] = [
       protein: 12,
       carbs: 58,
       fat: 12,
+      glycemicIndex: 50,
     },
   },
   {
@@ -91,6 +93,7 @@ export const sampleRecipes: Recipe[] = [
       protein: 35,
       carbs: 45,
       fat: 15,
+      glycemicIndex: 70,
     },
   },
 ]

@@ -71,7 +71,7 @@ export default function RecipesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {recipes.map((recipe) => (
-          <Card key={recipe.id} style={styles.card}>
+          <Card key={recipe.id} style={styles.card} onPress={() => navigateToRecipe(recipe.id)}>
             <Card.Cover source={{ uri: recipe.image }} />
             <Card.Content>
               <Title>{recipe.title}</Title>
@@ -86,6 +86,10 @@ export default function RecipesScreen() {
                   <MaterialIcons name="people" size={16} color="gray" />
                   <Paragraph style={styles.servingsText}>{recipe.servings} servings</Paragraph>
                 </View>
+                <View style={styles.giInfo}>
+                  <MaterialIcons name="monitor-heart" size={16} color="gray" />
+                  <Paragraph style={styles.giText}>GI: {recipe.nutritionInfo.glycemicIndex}</Paragraph>
+                </View>
               </View>
 
               <View style={styles.chips}>
@@ -96,9 +100,6 @@ export default function RecipesScreen() {
                 ))}
               </View>
             </Card.Content>
-            <Card.Actions>
-              <Button onPress={() => navigateToRecipe(recipe.id)}>View Recipe</Button>
-            </Card.Actions>
           </Card>
         ))}
       </ScrollView>
@@ -147,6 +148,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   servingsText: {
+    marginLeft: 4,
+    fontSize: 12,
+  },
+  giInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 16,
+  },
+  giText: {
     marginLeft: 4,
     fontSize: 12,
   },
